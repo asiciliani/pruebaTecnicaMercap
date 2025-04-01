@@ -5,25 +5,10 @@ TestCase subclass: #TelephoneLineBillTest
 	poolDictionaries: ''
 	category: 'PruebaTecnicaMercap'!
 
-!TelephoneLineBillTest methodsFor: 'tests' stamp: 'AS 3/30/2025 22:58:21'!
-bill
+!TelephoneLineBillTest methodsFor: 'tests' stamp: 'AS 3/31/2025 20:03:01'!
+previousMonth
 
-	^ TelephoneLineBill for: localLine1 duringMonth: self firstDayOfTodaysMonth! !
-
-!TelephoneLineBillTest methodsFor: 'tests' stamp: 'AS 3/30/2025 22:52:30'!
-internationalCost
-
-	^ (localLine1 internationalFee) * arbitraryCallDuration! !
-
-!TelephoneLineBillTest methodsFor: 'tests' stamp: 'AS 3/30/2025 22:31:32'!
-localLine1
-
-	^ TelephoneLine fromRegion: 'Buenos Aires' in: 'Argentina' number: '+541143215678'! !
-
-!TelephoneLineBillTest methodsFor: 'tests' stamp: 'AS 3/30/2025 22:52:19'!
-nationalCost
-
-	^ (localLine1 nationalFee) * arbitraryCallDuration! !
+	^ self firstDayOfPreviousMonth month! !
 
 !TelephoneLineBillTest methodsFor: 'tests' stamp: 'AS 3/30/2025 22:58:50'!
 test01UnusedLineIsBilledBasicFee
@@ -51,21 +36,21 @@ test04WeekendLocalCallIsBilledCorrectly
 	
 	self assert: self bill totalDue equals: (localLine1 basicMonthlyFee ) + self weekendCost.! !
 
-!TelephoneLineBillTest methodsFor: 'tests' stamp: 'AS 3/30/2025 22:59:41'!
+!TelephoneLineBillTest methodsFor: 'tests' stamp: 'AS 3/31/2025 20:01:48'!
 test05NationalCallIsBilledCorrectly
 	
-	localLine1 calls: nationalLine on: self firstDayOfTodaysMonth at:  arbirtraryTimeOfDay for: arbitraryCallDuration.
+	localLine1 calls: nationalLine on: self firstDayOfPreviousMonth at:  arbirtraryTimeOfDay for: arbitraryCallDuration.
 	
 	self assert: self bill totalDue equals: (localLine1 basicMonthlyFee ) + (self nationalCost).! !
 
-!TelephoneLineBillTest methodsFor: 'tests' stamp: 'AS 3/30/2025 22:59:59'!
+!TelephoneLineBillTest methodsFor: 'tests' stamp: 'AS 3/31/2025 20:01:48'!
 test06InternationalCallIsBilledCorrectly
 	
-	localLine1 calls: internationalLine on: self firstDayOfTodaysMonth at:  arbirtraryTimeOfDay for: arbitraryCallDuration.
+	localLine1 calls: internationalLine on: self firstDayOfPreviousMonth at:  arbirtraryTimeOfDay for: arbitraryCallDuration.
 	
 	self assert: self bill totalDue equals: (localLine1 basicMonthlyFee ) + (self internationalCost).! !
 
-!TelephoneLineBillTest methodsFor: 'tests' stamp: 'AS 3/30/2025 23:00:43'!
+!TelephoneLineBillTest methodsFor: 'tests' stamp: 'AS 3/31/2025 20:01:48'!
 test07BillIsCorrectlyGenerated
 	
 	| bill|
@@ -73,8 +58,8 @@ test07BillIsCorrectlyGenerated
 	localLine1 calls: localLine2 on: self weekDay at: self weekDayWorkingHoursTime for: arbitraryCallDuration.
 	localLine1 calls: localLine2 on: self weekDay at: self weekDayNonWorkingHoursTime for: arbitraryCallDuration.
 	localLine1 calls: localLine2 on: self weekendDay at:  arbirtraryTimeOfDay for: arbitraryCallDuration.
-	localLine1 calls: nationalLine on: self firstDayOfTodaysMonth at:  arbirtraryTimeOfDay for: arbitraryCallDuration.
-	localLine1 calls: internationalLine on: self firstDayOfTodaysMonth at:  arbirtraryTimeOfDay for: arbitraryCallDuration.
+	localLine1 calls: nationalLine on: self firstDayOfPreviousMonth at:  arbirtraryTimeOfDay for: arbitraryCallDuration.
+	localLine1 calls: internationalLine on: self firstDayOfPreviousMonth at:  arbirtraryTimeOfDay for: arbitraryCallDuration.
 	bill := self bill.
 	
 	self assert: bill totalDue equals: (localLine1 basicMonthlyFee + 
@@ -89,30 +74,70 @@ test07BillIsCorrectlyGenerated
 												    with: 'National and international usage: ', bill nationalAndInternationalUsage asString
 												    with: 'Total due: ' , bill totalDue asString).! !
 
+!TelephoneLineBillTest methodsFor: 'tests' stamp: 'AS 3/31/2025 20:03:02'!
+test08CanNotBillAMonthBeforeMonthLineWasEstablished
+	self should: [TelephoneLineBill for: localLine1 duringMonth: self previousMonth previous] 
+		raise: Error - MessageNotUnderstood 
+		withMessageText: TelephoneLineBill canNotBillBeforeLineWasEstablishedErrorDescription! !
 
-!TelephoneLineBillTest methodsFor: 'support' stamp: 'AS 3/30/2025 19:02:13'!
-closestWeekDayTo: aDate
+!TelephoneLineBillTest methodsFor: 'tests' stamp: 'AS 3/31/2025 20:10:10'!
+test09CanNotBillAMonthAfterMonthLineWasEstablishedButPreviousYear
+	
+	localLine1 established: (Date newDay: 1 month: Date today month monthIndex year: Date today year yearNumber - 1).
+	
+	self should: [TelephoneLineBill for: localLine1 duringMonth: Date today month next] 
+		raise: Error - MessageNotUnderstood 
+		withMessageText: TelephoneLineBill canNotBillBeforeLineWasEstablishedErrorDescription! !
+
+!TelephoneLineBillTest methodsFor: 'tests' stamp: 'AS 3/31/2025 19:52:50'!
+test10CanNotBillAMonthThatHasNotEnded
+	
+	self should: [TelephoneLineBill for: localLine1 duringMonth: Date today month] 
+		raise: Error - MessageNotUnderstood 
+		withMessageText: TelephoneLineBill canNotBillCurrentMonthErrorDescription! !
+
+
+!TelephoneLineBillTest methodsFor: 'support' stamp: 'AS 3/31/2025 20:03:01'!
+bill
+
+	^ TelephoneLineBill for: localLine1 duringMonth: self previousMonth! !
+
+!TelephoneLineBillTest methodsFor: 'support' stamp: 'AS 3/30/2025 23:15:56'!
+closestFollowingDayTo: aDate betweenIndex: startingWeekdayIndex and: endingWeekdayIndex
 	| date |
 	date := aDate.
-	[date weekdayIndex between: 1 and: 5] whileFalse: [date := date next].
+	[date weekdayIndex between: startingWeekdayIndex and: endingWeekdayIndex] whileFalse: [date := date next].
 	^date! !
 
-!TelephoneLineBillTest methodsFor: 'support' stamp: 'AS 3/30/2025 19:12:33'!
-closestWeekendDayTo: aDate 
-	| date |
-	date := aDate.
-	[date weekdayIndex between: 6 and: 7] whileFalse: [date := date next].
-	^date! !
+!TelephoneLineBillTest methodsFor: 'support' stamp: 'AS 3/30/2025 23:16:05'!
+closestFollowingWeekDayTo: aDate
+	
+	^self closestFollowingDayTo: aDate betweenIndex: 1 and: 5! !
 
-!TelephoneLineBillTest methodsFor: 'support' stamp: 'AS 3/30/2025 19:43:32'!
-firstDayOfTodaysMonth
+!TelephoneLineBillTest methodsFor: 'support' stamp: 'AS 3/30/2025 23:16:14'!
+closestFollowingWeekendDayTo: aDate 
+	
+	^self closestFollowingDayTo: aDate betweenIndex: 6 and: 7! !
 
-	^ Date newDay: 1 month: Date today month monthIndex year: Date today year yearNumber! !
+!TelephoneLineBillTest methodsFor: 'support' stamp: 'AS 3/31/2025 20:01:48'!
+firstDayOfPreviousMonth
 
-!TelephoneLineBillTest methodsFor: 'support' stamp: 'AS 3/30/2025 19:43:32'!
+	^ Date newDay: 1 month: Date today month monthIndex - 1 year: Date today year yearNumber! !
+
+!TelephoneLineBillTest methodsFor: 'support' stamp: 'AS 3/30/2025 22:52:30'!
+internationalCost
+
+	^ (localLine1 internationalFee) * arbitraryCallDuration! !
+
+!TelephoneLineBillTest methodsFor: 'support' stamp: 'AS 3/30/2025 22:52:19'!
+nationalCost
+
+	^ (localLine1 nationalFee) * arbitraryCallDuration! !
+
+!TelephoneLineBillTest methodsFor: 'support' stamp: 'AS 3/31/2025 20:01:48'!
 weekDay
 
-	^ self closestWeekDayTo: (self firstDayOfTodaysMonth) ! !
+	^ self closestFollowingWeekDayTo: (self firstDayOfPreviousMonth) ! !
 
 !TelephoneLineBillTest methodsFor: 'support' stamp: 'AS 3/30/2025 22:51:01'!
 weekDayNonWorkHoursCost
@@ -139,15 +164,16 @@ weekendCost
 
 	^ localLine1 weekendFee * arbitraryCallDuration! !
 
-!TelephoneLineBillTest methodsFor: 'support' stamp: 'AS 3/30/2025 19:43:32'!
+!TelephoneLineBillTest methodsFor: 'support' stamp: 'AS 3/31/2025 20:01:48'!
 weekendDay
 
-	^self closestWeekendDayTo: (self firstDayOfTodaysMonth) ! !
+	^self closestFollowingWeekendDayTo: (self firstDayOfPreviousMonth) ! !
 
 
-!TelephoneLineBillTest methodsFor: 'setUp/tearDown' stamp: 'AS 3/30/2025 22:56:42'!
+!TelephoneLineBillTest methodsFor: 'setUp/tearDown' stamp: 'AS 3/31/2025 20:01:48'!
 setUp
 	localLine1 :=  TelephoneLine fromRegion: 'Buenos Aires' in: 'Argentina' number: '+541143215678'.
+	localLine1 established: self firstDayOfPreviousMonth.
 	localLine2 := TelephoneLine fromRegion: 'Buenos Aires' in: 'Argentina' number: '+541145555555'.
 	nationalLine := TelephoneLine fromRegion: 'Rosario' in: 'Argentina' number: '+543411234567'.
 	internationalLine := TelephoneLine fromRegion: 'Montevideo' in: 'Uruguay' number: '+598 2 123 4567'.
@@ -463,7 +489,7 @@ canHandle: aCallToBill
 
 !classDefinition: #TelephoneLine category: #PruebaTecnicaMercap!
 Object subclass: #TelephoneLine
-	instanceVariableNames: 'region country outgoingCalls number'
+	instanceVariableNames: 'region country outgoingCalls number establishedDate'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'PruebaTecnicaMercap'!
@@ -493,21 +519,23 @@ weekendFee
 	^self class weekendFee ! !
 
 
-!TelephoneLine methodsFor: 'testing' stamp: 'AS 3/30/2025 22:27:27'!
+!TelephoneLine methodsFor: 'calling' stamp: 'AS 3/30/2025 22:27:27'!
 calls: aLineThatWasCalled on: aDate at: aTimeOfDay for: aCallDuration
 	outgoingCalls add: (Call from: self to: aLineThatWasCalled on: aDate at: aTimeOfDay for: aCallDuration).! !
 
-!TelephoneLine methodsFor: 'testing' stamp: 'AS 3/30/2025 00:55:25'!
-initialize
-	outgoingCalls  := OrderedCollection new
-	! !
+
+!TelephoneLine methodsFor: 'testing' stamp: 'AS 3/31/2025 18:50:45'!
+established: aDateToSetAsEstablished 
+	establishedDate := aDateToSetAsEstablished ! !
 
 
-!TelephoneLine methodsFor: 'instance creation' stamp: 'AS 3/30/2025 22:14:42'!
+!TelephoneLine methodsFor: 'instance creation' stamp: 'AS 3/31/2025 19:26:51'!
 initializeFromRegion: aCallingRegion in: aCallingCountry number: aLineNumber   
 	region := aCallingRegion.
 	country := aCallingCountry.
-	number := aLineNumber ! !
+	number := aLineNumber.
+	establishedDate := Date today.
+	outgoingCalls  := OrderedCollection new! !
 
 
 !TelephoneLine methodsFor: 'querying' stamp: 'AS 3/30/2025 00:47:17'!
@@ -538,6 +566,11 @@ outgoingCalls
 !TelephoneLine methodsFor: 'number' stamp: 'AS 3/30/2025 22:07:33'!
 number
 	^number! !
+
+
+!TelephoneLine methodsFor: 'date' stamp: 'AS 3/30/2025 23:29:09'!
+establishedDate
+	^establishedDate! !
 
 "-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- "!
 
@@ -674,6 +707,53 @@ month
 TelephoneLineBill class
 	instanceVariableNames: ''!
 
-!TelephoneLineBill class methodsFor: 'instance creation' stamp: 'AS 3/30/2025 21:03:54'!
-for: aLineToBill duringMonth: aMonthOfBilling 
+!TelephoneLineBill class methodsFor: 'instance creation' stamp: 'AS 3/31/2025 20:52:23'!
+for: aLineToBill duringMonth: aMonthOfBilling
+	self assert: aLineToBill wasEstablishedBefore: aMonthOfBilling.
+	self assertIsNotCurrentMonth: aMonthOfBilling.
+		
 	^self new initializeFor: aLineToBill duringMonth: aMonthOfBilling ! !
+
+
+!TelephoneLineBill class methodsFor: 'error description' stamp: 'AS 3/30/2025 23:25:49'!
+canNotBillBeforeLineWasEstablishedErrorDescription
+	^'Can not bill a line before the time it was established.'! !
+
+!TelephoneLineBill class methodsFor: 'error description' stamp: 'AS 3/31/2025 19:31:35'!
+canNotBillCurrentMonthErrorDescription
+	^'Can not bill current month, you must wait for it to end.'! !
+
+
+!TelephoneLineBill class methodsFor: 'error signals' stamp: 'AS 3/31/2025 19:14:41'!
+signalCanNotBillBeforeLineWasEstablished
+
+	^ self error: self canNotBillBeforeLineWasEstablishedErrorDescription! !
+
+!TelephoneLineBill class methodsFor: 'error signals' stamp: 'AS 3/31/2025 21:01:57'!
+signalCanNotBillCurrentMonth
+
+	^ self error: self canNotBillCurrentMonthErrorDescription! !
+
+
+!TelephoneLineBill class methodsFor: 'assertions' stamp: 'AS 3/31/2025 20:51:41'!
+assert: aLineToBill wasEstablishedBefore: aMonthOfBilling
+
+	^ ((self wasEstalished: aLineToBill onSameYearSmallerMonth: aMonthOfBilling)
+	or: [(self wasEstablished: aLineToBill onSmallerYearThan: aMonthOfBilling)])
+		ifFalse: [self signalCanNotBillBeforeLineWasEstablished]! !
+
+!TelephoneLineBill class methodsFor: 'assertions' stamp: 'AS 3/31/2025 21:01:57'!
+assertIsNotCurrentMonth: aMonthOfBilling
+
+	^ (aMonthOfBilling= Date today month) ifTrue: [self signalCanNotBillCurrentMonth]! !
+
+!TelephoneLineBill class methodsFor: 'assertions' stamp: 'AS 3/31/2025 20:51:09'!
+wasEstablished: aLineToBill onSmallerYearThan: aMonthOfBilling
+	
+	^ aMonthOfBilling yearNumber < aLineToBill establishedDate year yearNumber! !
+
+!TelephoneLineBill class methodsFor: 'assertions' stamp: 'AS 3/31/2025 20:12:17'!
+wasEstalished: aLineToBill onSameYearSmallerMonth: aMonthOfBilling
+
+	^ (aMonthOfBilling yearNumber = aLineToBill establishedDate year yearNumber)
+	and: [aMonthOfBilling monthIndex >= (aLineToBill establishedDate month monthIndex)]! !
